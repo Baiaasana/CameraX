@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/preview_view"
+        android:layout_width="match_parent"
+        android:layout_height="300dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:layout_margin="20dp"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/capture_button"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Take image" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:layout_width="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:id="@+id/isFront"
+            android:layout_height="wrap_content"/>
+
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/captured_image_view"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:scaleType="centerCrop" />
+
+</LinearLayout>
