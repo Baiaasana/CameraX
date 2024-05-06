@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.myapplication.ui.fragments.CameraLibraryFragment"
+        android:name="com.example.myapplication.ui.fragments.HomeFragment"
         android:label="fragment_home"
         tools:layout="@layout/fragment_home" >
         <action
@@ -21,12 +21,12 @@
     <fragment
         android:id="@+id/cameraFragment"
         tools:layout="@layout/fragment_camera"
-        android:name="com.example.myapplication.ui.fragments.CameraX"
+        android:name="com.example.myapplication.ui.fragments.CameraXImageVideo"
         android:label="CameraFragment" />
     <fragment
         android:id="@+id/cameraXFragment"
         tools:layout="@layout/fragment_camera_x"
-        android:name="com.example.myapplication.ui.fragments.CameraXProvider"
+        android:name="com.example.myapplication.ui.fragments.CameraXImage"
         android:label="CameraXFragment" />
 
 </navigation>

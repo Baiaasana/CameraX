@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.fragments
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,7 +11,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -20,12 +21,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
+import androidx.navigation.fragment.findNavController
 import com.example.myapplication.databinding.FragmentCameraXBinding
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class CameraXProvider : Fragment() {
+class CameraXImage : Fragment() {
 
     private var _binding: FragmentCameraXBinding? = null
     private val binding get() = _binding!!
@@ -35,32 +37,42 @@ class CameraXProvider : Fragment() {
     private lateinit var cameraExecutor: ExecutorService
     private var imageCapture: ImageCapture? = null
 
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (!isGranted) {
+                // Handle permission not granted
+                findNavController().navigateUp()
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         _binding = FragmentCameraXBinding.inflate(inflater, container, false)
+        requestCameraPermission()
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        addListener()
-
+        cameraSetup()
         binding.isFront.setOnCheckedChangeListener { _, isChecked ->
             Log.d("check change", "$isChecked")
             isFront = isChecked
-            addListener()
+            cameraSetup()
         }
-
         cameraExecutor = Executors.newSingleThreadExecutor()
-        requestCameraPermission()
     }
-
 
     private fun takePicture() {
         val imageCapture = imageCapture ?: return
-        val photoFile = File(this@CameraXProvider.requireActivity().filesDir, "captured_image.jpg")
+        val photoFile = File(this@CameraXImage.requireActivity().filesDir, "captured_image.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
         imageCapture.takePicture(
@@ -87,41 +99,22 @@ class CameraXProvider : Fragment() {
         )
     }
 
-    // rotate image
     fun rotateBitmap(bitmap: Bitmap, degrees: Float): Bitmap {
         val matrix = Matrix().apply { postRotate(degrees) }
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun requestCameraPermission() {
-        val requestPermissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (!isGranted) {
-                // Handle permission not granted
-            }
-        }
-
         if (ContextCompat.checkSelfPermission(
                 requireContext(),
-                android.Manifest.permission.CAMERA
+                Manifest.permission.CAMERA
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            // Permission granted, continue setting up CameraX
-        } else {
-            Toast.makeText(requireContext(), "No permissions", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun addListener() {
+    private fun cameraSetup() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener(Runnable {
 
@@ -158,35 +151,11 @@ class CameraXProvider : Fragment() {
             } catch (exc: Exception) {
                 Log.e("error", "Use case binding failed", exc)
             }
-            // Set up the capture button to take a picture
+
             binding.captureButton.setOnClickListener {
                 takePicture()
             }
-
-
         }, ContextCompat.getMainExecutor(requireContext()))
-    }
-
-    override fun onStart() {
-        super.onStart()
-
-        when {
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                // Permission is granted, continue
-            }
-
-            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
-                // Show a rationale to explain why permission is needed
-            }
-
-            else -> {
-                // Request permission
-                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-        }
     }
 
     override fun onDestroyView() {

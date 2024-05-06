@@ -18,12 +18,10 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
 import androidx.fragment.app.Fragment
 import com.example.myapplication.databinding.FragmentCameraBinding
 import com.example.myapplication.util.LuminosityAnalyzer
@@ -32,7 +30,7 @@ import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class CameraX : Fragment() {
+class CameraXImageVideo : Fragment() {
 
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
@@ -86,17 +84,23 @@ class CameraX : Fragment() {
 
         val outputOptions = ImageCapture
             .OutputFileOptions
-            .Builder(requireActivity().contentResolver,MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            .Builder(
+                requireActivity().contentResolver,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            )
             .build()
 
         imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(requireContext()),
-            object : ImageCapture.OnImageSavedCallback{
+            object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    Toast.makeText(requireContext(), "image saves successfully", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "image saves successfully", Toast.LENGTH_SHORT)
+                        .show()
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Toast.makeText(requireContext(), "image did not save", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "image did not save", Toast.LENGTH_SHORT)
+                        .show()
                 }
 
             })
@@ -104,55 +108,8 @@ class CameraX : Fragment() {
 
 
     private fun captureVideo() {
-        val videoCapture = this@CameraX.videoCapture ?: return
-        binding.videoCaptureButton.isEnabled = false
-        val currentRecording = recording
-        if(currentRecording != null) {
-            currentRecording.stop()
-            recording = null
-            return
-        }
-        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
-            .format(System.currentTimeMillis())
 
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-            if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P){
-                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX-Video")
-            }
-        }
-
-        val mediaStoreOutPutOptions = MediaStoreOutputOptions
-            .Builder(requireActivity().contentResolver,
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-            .setContentValues(contentValues)
-            .build()
-
-        recording = videoCapture.output
-            .prepareRecording(this, mediaStoreOutPutOptions)
-            .apply {
-                if (PermissionChecker.checkSelfPermission(this.requireActivity(),
-                        Manifest.permission.RECORD_AUDIO) ==
-                    PermissionChecker.PERMISSION_GRANTED)
-                {
-                    withAudioEnabled()
-                }
-            }
-            .start(ContextCompat.getMainExecutor(requireActivity().baseContext){
-                when(it)
-            }
-
-
-
-        videoCapture
-            .output
-            .prepareRecording(requireContext(), mediaStoreOutPutOptions)
-            .apply {
-
-            }
     }
-
 
 
     private fun startCamera() {
@@ -173,7 +130,7 @@ class CameraX : Fragment() {
                 .build()
                 .also {
                     it.setAnalyzer(
-                        cameraExecutor, LuminosityAnalyzer{ luma ->
+                        cameraExecutor, LuminosityAnalyzer { luma ->
                             Log.d(TAG, "luma $luma")
                         }
                     )
