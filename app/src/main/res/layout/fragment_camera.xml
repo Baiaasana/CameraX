@@ -9,8 +9,45 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/info"
+        android:visibility="gone"
+        android:layout_marginHorizontal="16dp"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:orientation="vertical"
+        android:layout_height="match_parent">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:text="@string/title"/>
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:text="@string/desc"/>
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:layout_width="match_parent"
+            android:id="@+id/settings_text_view"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp"
+            android:textColor="#00AEFF"
+            android:gravity="center"
+            android:text="@string/open_settings"/>
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/image_capture_button"

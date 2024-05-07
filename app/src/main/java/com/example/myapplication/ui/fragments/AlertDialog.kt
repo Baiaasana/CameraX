@@ -15,10 +15,10 @@ class AlertDialog : DialogFragment() {
             builder
                 .setMessage("You has no Camera Permission grated, cause of this some features like a camera feature may be not used by you")
                 .setTitle("Educational Rationale")
-                .setPositiveButton("Set Permission") { dialog, which ->
+                .setPositiveButton("Set Permission") { _, _ ->
                     positiveClick.invoke()
                 }
-                .setNeutralButton("Okay") { dialog, which ->
+                .setNeutralButton("Okay") { _, _ ->
                     dismiss()
                 }
 

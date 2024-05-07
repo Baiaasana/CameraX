@@ -18,13 +18,21 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.MediaStoreOutputOptions
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
+import androidx.camera.video.VideoRecordEvent
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.fragment.app.Fragment
+import com.example.myapplication.R
 import com.example.myapplication.databinding.FragmentCameraBinding
 import com.example.myapplication.util.LuminosityAnalyzer
+import com.example.myapplication.util.openAppSettings
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -42,6 +50,7 @@ class CameraXImageVideo : Fragment() {
 
     private lateinit var cameraExecutor: ExecutorService
 
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -52,19 +61,34 @@ class CameraXImageVideo : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Request camera permissions
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            requestPermissions()
-        }
-
-        // Set up the listeners for take photo and video capture buttons
-        binding.imageCaptureButton.setOnClickListener { takePhoto() }
-        binding.videoCaptureButton.setOnClickListener { captureVideo() }
-
+        listeners()
         cameraExecutor = Executors.newSingleThreadExecutor()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        when {
+            REQUIRED_PERMISSIONS.all {
+                ContextCompat.checkSelfPermission(
+                    requireActivity().baseContext, it
+                ) == PackageManager.PERMISSION_GRANTED
+            } -> {
+                startCamera()
+            }
+
+            REQUIRED_PERMISSIONS.all {
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    requireActivity(), it
+                )
+            } -> {
+                showInContextUI()
+            }
+
+            else -> {
+                // You can directly ask for the permission.
+                activityResultLauncher.launch(REQUIRED_PERMISSIONS)
+            }
+        }
     }
 
     private fun takePhoto() {
@@ -94,28 +118,103 @@ class CameraXImageVideo : Fragment() {
         imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(requireContext()),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    Toast.makeText(requireContext(), "image saves successfully", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), "Image saves successfully", Toast.LENGTH_SHORT)
                         .show()
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Toast.makeText(requireContext(), "image did not save", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), "Image did not save", Toast.LENGTH_SHORT)
                         .show()
                 }
-
             })
     }
 
 
     private fun captureVideo() {
+        val vc = this.videoCapture ?: return
+        binding.videoCaptureButton.isEnabled = false
 
+        if (recording != null) {
+            // Stop the current recording session.
+            recording?.stop()
+            recording = null
+            return
+        }
+
+        // create and start a new recording session
+        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+            .format(System.currentTimeMillis())
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX-Video")
+            }
+        }
+
+        val mediaStoreOutputOptions = MediaStoreOutputOptions
+            .Builder(requireActivity().contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+            .setContentValues(contentValues)
+            .build()
+
+        recording = vc.output
+            .prepareRecording(requireContext(), mediaStoreOutputOptions)
+            .apply {
+                if (PermissionChecker.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.RECORD_AUDIO
+                    ) ==
+                    PermissionChecker.PERMISSION_GRANTED
+                ) {
+                    withAudioEnabled()
+                }else{
+                    Toast.makeText(requireContext(), "Permission not granted", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+            .start(ContextCompat.getMainExecutor(requireContext())) { recordEvent ->
+                when (recordEvent) {
+                    is VideoRecordEvent.Start -> {
+                        Toast.makeText(requireActivity().baseContext, "start recording", Toast.LENGTH_SHORT)
+                            .show()
+                        binding.videoCaptureButton.apply {
+                            text = getString(R.string.stop_capture)
+                            isEnabled = true
+                        }
+                    }
+
+                    is VideoRecordEvent.Finalize -> {
+                        if (!recordEvent.hasError()) {
+                            val msg = "Video capture succeeded: " +
+                                    "${recordEvent.outputResults.outputUri}"
+                            Toast.makeText(requireActivity().baseContext, msg, Toast.LENGTH_SHORT)
+                                .show()
+                        } else {
+                            recording?.close()
+                            recording = null
+                        }
+                        binding.videoCaptureButton.apply {
+                            text = getString(R.string.start_capture)
+                            isEnabled = true
+                        }
+                    }
+                    else ->{
+                        Toast.makeText(requireActivity().baseContext, "else", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                }
+            }
     }
 
 
     private fun startCamera() {
+        binding.info.visibility = View.GONE
+        binding.viewFinder.visibility = View.VISIBLE
+        binding.imageCaptureButton.isEnabled = true
+        binding.videoCaptureButton.isEnabled = true
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
 
-        cameraProviderFuture.addListener(Runnable {
+        cameraProviderFuture.addListener({
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
@@ -130,8 +229,8 @@ class CameraXImageVideo : Fragment() {
                 .build()
                 .also {
                     it.setAnalyzer(
-                        cameraExecutor, LuminosityAnalyzer { luma ->
-                            Log.d(TAG, "luma $luma")
+                        cameraExecutor, LuminosityAnalyzer { _ ->
+//                            Log.d(TAG, "luma $luma")
                         }
                     )
                 }
@@ -140,6 +239,12 @@ class CameraXImageVideo : Fragment() {
                 .Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                 .build()
+
+
+            val recorder = Recorder.Builder()
+                .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
+                .build()
+            videoCapture = VideoCapture.withOutput(recorder)
 
             // Select back camera as a default
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -160,15 +265,19 @@ class CameraXImageVideo : Fragment() {
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
-    private fun requestPermissions() {
-        activityResultLauncher.launch(REQUIRED_PERMISSIONS)
+    private fun listeners() {
+        binding.imageCaptureButton.setOnClickListener { takePhoto() }
+        binding.videoCaptureButton.setOnClickListener { captureVideo() }
+        binding.settingsTextView.setOnClickListener {
+            openAppSettings(requireContext())
+        }
     }
 
-
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-            requireActivity().baseContext, it
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun showInContextUI() = with(binding) {
+        imageCaptureButton.isEnabled = false
+        videoCaptureButton.isEnabled = false
+        info.visibility = View.VISIBLE
+        viewFinder.visibility = View.GONE
     }
 
     override fun onDestroy() {
@@ -191,25 +300,21 @@ class CameraXImageVideo : Fragment() {
             }.toTypedArray()
     }
 
+
     private val activityResultLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         )
         { permissions ->
             // Handle Permission granted/rejected
-            var permissionGranted = true
+            var permissionsGranted = true
             permissions.entries.forEach {
-                if (it.key in REQUIRED_PERMISSIONS && it.value == false)
-                    permissionGranted = false
+                if (!it.value) permissionsGranted = false
             }
-            if (!permissionGranted) {
-                Toast.makeText(
-                    requireActivity().baseContext,
-                    "Permission request denied",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
+            if (permissionsGranted) {
                 startCamera()
+            } else {
+                showInContextUI()
             }
         }
 

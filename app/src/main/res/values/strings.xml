@@ -5,4 +5,9 @@
     <string name="take_photo">Take Photo</string>
     <string name="start_capture">Start Capture</string>
     <string name="stop_capture">Stop Capture</string>
+    <string name="image_video">Image - Video</string>
+    <string name="image">Image</string>
+    <string name="desc">This lets you to take photos and record videos. You can change this anytime in your device settings</string>
+    <string name="title">Allow app to access tyour camera and microphone</string>
+    <string name="open_settings">Open settings</string>
 </resources>

@@ -32,7 +32,6 @@ class HomeFragment : Fragment() {
                 findNavController().navigate(HomeFragmentDirections.actionHomeFragmentToCameraXFragment2())
             } else {
                 showInContextUI()
-
             }
         }
     }
@@ -53,14 +52,12 @@ class HomeFragment : Fragment() {
     private fun listeners() {
         binding.btnImage.setOnClickListener {
             when {
-
                 ContextCompat.checkSelfPermission(
                     requireContext(),
                     Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     // You can use the API that requires the permission.
                     findNavController().navigate(HomeFragmentDirections.actionHomeFragmentToCameraXFragment2())
-
                 }
 
                 ActivityCompat.shouldShowRequestPermissionRationale(

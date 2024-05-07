@@ -55,6 +55,7 @@ class CameraXImage : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         _binding = FragmentCameraXBinding.inflate(inflater, container, false)
+        // check permission if user manually denied it and return on fragment
         requestCameraPermission()
         return binding.root
     }
@@ -63,8 +64,8 @@ class CameraXImage : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         cameraSetup()
         binding.isFront.setOnCheckedChangeListener { _, isChecked ->
-            Log.d("check change", "$isChecked")
             isFront = isChecked
+            // is camera setup on every click good practice?
             cameraSetup()
         }
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -82,7 +83,6 @@ class CameraXImage : Fragment() {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
                     requireActivity().runOnUiThread {
-
                         val rotatedBitmap = if (isFront) {
                             rotateBitmap(bitmap, -90f)  // Adjust rotation as needed
                         } else {
@@ -116,7 +116,7 @@ class CameraXImage : Fragment() {
 
     private fun cameraSetup() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-        cameraProviderFuture.addListener(Runnable {
+        cameraProviderFuture.addListener({
 
             val cameraProvider = cameraProviderFuture.get()
 
@@ -136,7 +136,7 @@ class CameraXImage : Fragment() {
                 CameraSelector.DEFAULT_FRONT_CAMERA
             } else {
                 CameraSelector.DEFAULT_BACK_CAMERA
-            }// 90 front -90
+            }
 
             try {
                 // Unbind use cases before rebinding
