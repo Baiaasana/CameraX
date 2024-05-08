@@ -13,8 +13,8 @@ class AlertDialog : DialogFragment() {
             // Use the Builder class for convenient dialog construction.
             val builder: AlertDialog.Builder = AlertDialog.Builder(context)
             builder
-                .setMessage("You has no Camera Permission grated, cause of this some features like a camera feature may be not used by you")
-                .setTitle("Educational Rationale")
+                .setMessage("This lets you to take photos. You can change this anytime in your device settings")
+                .setTitle("Allow app to access your camera")
                 .setPositiveButton("Set Permission") { _, _ ->
                     positiveClick.invoke()
                 }
