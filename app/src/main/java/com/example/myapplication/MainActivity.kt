@@ -30,7 +30,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
         return super.onCreateView(name, context, attrs)
 
